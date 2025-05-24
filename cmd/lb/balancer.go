@@ -51,6 +51,29 @@ func health(dst string) bool {
 	return true
 }
 
+// selectBackend picks the healthy backend with the least total response bytes
+func selectBackend() string {
+  var selected string
+  var min uint64
+  first := true
+  for _, srv := range serversPool {
+    if !health(srv) {
+      continue
+    }
+    cnt := atomic.LoadUint64(trafficCounters[srv])
+    if first || cnt < min {
+      min = cnt
+      selected = srv
+      first = false
+    }
+  }
+  if selected == "" {
+    // fallback to first if none healthy
+    return serversPool[0]
+  }
+  return selected
+}
+
 func forward(dst string, rw http.ResponseWriter, r *http.Request) error {
 	ctx, _ := context.WithTimeout(r.Context(), timeout)
 	fwdRequest := r.Clone(ctx)
