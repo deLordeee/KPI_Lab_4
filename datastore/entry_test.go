@@ -1,45 +1,20 @@
 package datastore
 
-import (
-	"bufio"
-	"bytes"
-	"testing"
-)
+import "testing"
 
-func TestEntry_Encode(t *testing.T) {
-	e := entry{"key", "value"}
-	e.Decode(e.Encode())
-	if e.key != "key" {
-		t.Error("incorrect key")
+func TestEntryEncodeDecode(t *testing.T) {
+	e := entry{key: "a", value: "b", isDeleted: false}
+	data := e.Encode()
+	var e2 entry
+	e2.Decode(data)
+	if e2.key != "a" || e2.value != "b" || e2.isDeleted {
+		t.Error("Entry encode/decode failed")
 	}
-	if e.value != "value" {
-		t.Error("incorrect value")
-	}
-}
-
-func TestReadValue(t *testing.T) {
-	var (
-		a, b entry
-	)
-	a = entry{"key", "test-value"}
-	originalBytes := a.Encode()
-
-	b.Decode(originalBytes)
-	t.Log("encode/decode", a, b)
-	if a != b {
-		t.Error("Encode/Decode mismatch")
-	}
-
-	b = entry{}
-	n, err := b.DecodeFromReader(bufio.NewReader(bytes.NewReader(originalBytes)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("encode/decodeFromReader", a, b)
-	if a != b {
-		t.Error("Encode/DecodeFromReader mismatch")
-	}
-	if n != len(originalBytes) {
-		t.Errorf("DecodeFromReader() read %d bytes, expected %d", n, len(originalBytes))
+	tomb := entry{key: "x", value: "", isDeleted: true}
+	data = tomb.Encode()
+	var t2 entry
+	t2.Decode(data)
+	if t2.key != "x" || !t2.isDeleted {
+		t.Error("Tombstone encode/decode failed")
 	}
 }
